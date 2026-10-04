@@ -3,6 +3,7 @@ import SwiftUI
 import WidgetKit
 
 // MARK: - 灵动岛 / 锁屏实时活动视图
+// 布局数据随 ContentState.layoutJSON 传递；无布局时回退默认渲染
 
 struct BetLandLiveActivity: Widget {
     var body: some WidgetConfiguration {
@@ -11,15 +12,28 @@ struct BetLandLiveActivity: Widget {
             LockScreenLiveActivityView(context: context)
         } dynamicIsland: { context in
             DynamicIsland {
-                // 展开态：四大系统区域自由摆放
-                DynamicIslandExpandedRegion(.leading) {
-                    leadingExpanded(context)
-                }
-                DynamicIslandExpandedRegion(.trailing) {
-                    trailingExpanded(context)
-                }
-                DynamicIslandExpandedRegion(.bottom) {
-                    bottomExpanded(context)
+                // 展开态：按画布坐标分区自由摆放
+                if let layout = IslandStore.decode(context.state.layoutJSON) {
+                    let regions = ExpandedRegions.split(layout)
+                    DynamicIslandExpandedRegion(.leading) {
+                        regionView(regions.leading, canvas: layout, yRange: -layout.expandedHeight / 2 ... layout.expandedHeight * 0.45)
+                    }
+                    DynamicIslandExpandedRegion(.trailing) {
+                        regionView(regions.trailing, canvas: layout, yRange: -layout.expandedHeight / 2 ... layout.expandedHeight * 0.45)
+                    }
+                    DynamicIslandExpandedRegion(.bottom) {
+                        regionView(regions.bottom, canvas: layout, yRange: layout.expandedHeight * 0.45 ... layout.expandedHeight / 2)
+                    }
+                } else {
+                    DynamicIslandExpandedRegion(.leading) {
+                        leadingExpanded(context)
+                    }
+                    DynamicIslandExpandedRegion(.trailing) {
+                        trailingExpanded(context)
+                    }
+                    DynamicIslandExpandedRegion(.bottom) {
+                        bottomExpanded(context)
+                    }
                 }
             } compactLeading: {
                 compactLeading(context)
@@ -31,7 +45,60 @@ struct BetLandLiveActivity: Widget {
         }
     }
 
-    // MARK: - 展开态
+    // MARK: - 按坐标分区
+
+    private struct ExpandedRegions {
+        let leading: [IslandItem]
+        let trailing: [IslandItem]
+        let bottom: [IslandItem]
+
+        static func split(_ layout: IslandLayout) -> ExpandedRegions {
+            let topY = layout.expandedHeight * 0.45
+            var leading: [IslandItem] = []
+            var trailing: [IslandItem] = []
+            var bottom: [IslandItem] = []
+            for item in layout.items {
+                if item.y < topY {
+                    if item.x < 0 {
+                        leading.append(item)
+                    } else {
+                        trailing.append(item)
+                    }
+                } else {
+                    bottom.append(item)
+                }
+            }
+            return ExpandedRegions(
+                leading: leading.sorted { $0.x < $1.x },
+                trailing: trailing.sorted { $0.x > $1.x },
+                bottom: bottom.sorted { $0.y < $1.y }
+            )
+        }
+    }
+
+    /// 区域内按相对画布坐标自由定位
+    private func regionView(
+        _ items: [IslandItem],
+        canvas: IslandLayout,
+        yRange: ClosedRange<Double>
+    ) -> some View {
+        GeometryReader { geo in
+            ZStack(alignment: .topLeading) {
+                ForEach(items) { item in
+                    islandItemView(item, live: true)
+                        .scaleEffect(item.scale)
+                        .opacity(item.opacity)
+                        .position(
+                            x: geo.size.width * item.normalizedX(canvasWidth: canvas.expandedWidth),
+                            y: geo.size.height * item.normalizedY(in: yRange, canvasHeight: canvas.expandedHeight)
+                        )
+                }
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+        }
+    }
+
+    // MARK: - 展开态（默认回退）
 
     private func leadingExpanded(_ context: ActivityViewContext<BetLandAttributes>) -> some View {
         VStack(alignment: .leading, spacing: 4) {
@@ -92,6 +159,7 @@ struct BetLandLiveActivity: Widget {
         Text(context.state.subtitle)
             .font(.caption.weight(.bold))
             .monospacedDigit()
+            .lineLimit(1)
             .foregroundStyle(.white)
     }
 
@@ -110,21 +178,48 @@ private struct LockScreenLiveActivityView: View {
     let context: ActivityViewContext<BetLandAttributes>
 
     var body: some View {
-        HStack(spacing: 12) {
-            Image(systemName: "sparkles")
-                .font(.title2)
-                .foregroundStyle(Color(hex: context.state.accentHex))
-            VStack(alignment: .leading, spacing: 4) {
-                Text(context.state.title)
-                    .font(.headline)
-                Text(context.state.subtitle)
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-                ProgressView(value: context.state.progress)
-                    .tint(Color(hex: context.state.accentHex))
+        if let layout = IslandStore.decode(context.state.layoutJSON) {
+            GeometryReader { geo in
+                ZStack(alignment: .topLeading) {
+                    ForEach(layout.items) { item in
+                        islandItemView(item, live: true)
+                            .scaleEffect(item.scale)
+                            .opacity(item.opacity)
+                            .position(
+                                x: geo.size.width * item.normalizedX(canvasWidth: layout.expandedWidth),
+                                y: geo.size.height * item.normalizedY(
+                                    in: -layout.expandedHeight / 2 ... layout.expandedHeight / 2,
+                                    canvasHeight: layout.expandedHeight
+                                )
+                            )
+                    }
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
-            Spacer()
+            .containerBackground(for: .activity) {
+                Color.black.opacity(0.8)
+            }
+        } else {
+            // 默认锁屏视图
+            HStack(spacing: 12) {
+                Image(systemName: "sparkles")
+                    .font(.title2)
+                    .foregroundStyle(Color(hex: context.state.accentHex))
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(context.state.title)
+                        .font(.headline)
+                    Text(context.state.subtitle)
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                    ProgressView(value: context.state.progress)
+                        .tint(Color(hex: context.state.accentHex))
+                }
+                Spacer()
+            }
+            .padding(14)
+            .containerBackground(for: .activity) {
+                Color.black.opacity(0.8)
+            }
         }
-        .padding(14)
     }
 }

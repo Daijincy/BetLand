@@ -6,13 +6,16 @@ import Foundation
 enum LiveActivityManager {
 
     /// 启动一个实时活动（自用环境使用 pushType: nil，无推送令牌依赖）
+    /// 布局快照随 ContentState 传递，Widget 据此渲染自定义内容
     static func start(config: IslandConfig) throws -> Activity<BetLandAttributes> {
+        let layout = IslandLayout.from(config: config)
         let attributes = BetLandAttributes(name: "BetLand")
         let state = BetLandAttributes.ContentState(
-            title: config.capsuleLeadingText,
-            subtitle: config.capsuleTrailingText,
+            title: layout.capsuleLeadingText,
+            subtitle: layout.capsuleTrailingText,
             progress: 0.0,
-            accentHex: config.accentHex
+            accentHex: layout.accentHex,
+            layoutJSON: IslandStore.encode(layout)
         )
         let content = ActivityContent(state: state, staleDate: nil)
         return try Activity.request(
@@ -22,17 +25,19 @@ enum LiveActivityManager {
         )
     }
 
-    /// 前台更新（App 存活时调用）
+    /// 前台更新（App 存活时调用；布局改动后刷新到已运行的活动）
     static func update(
         _ activity: Activity<BetLandAttributes>,
         config: IslandConfig,
         progress: Double = 0.0
     ) async {
+        let layout = IslandLayout.from(config: config)
         let state = BetLandAttributes.ContentState(
-            title: config.capsuleLeadingText,
-            subtitle: config.capsuleTrailingText,
+            title: layout.capsuleLeadingText,
+            subtitle: layout.capsuleTrailingText,
             progress: progress,
-            accentHex: config.accentHex
+            accentHex: layout.accentHex,
+            layoutJSON: IslandStore.encode(layout)
         )
         let content = ActivityContent(state: state, staleDate: nil)
         await activity.update(content)

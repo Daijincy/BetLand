@@ -1,15 +1,26 @@
 import SwiftUI
+import SwiftData
 
-// MARK: - 布局编辑器（液态玻璃画布）
+// MARK: - 布局编辑器（液态玻璃画布 + 预设持久化）
 
 struct EditorView: View {
     @Environment(IslandConfig.self) private var config
+    @Environment(\.modelContext) private var modelContext
+    @Query(sort: \LayoutPreset.createdAt) private var presets: [LayoutPreset]
     @State private var selectedItemID: UUID?
+
+    private let palette: [String] = [
+        "#FFFFFF", "#0A84FF", "#30D158", "#FF9F0A",
+        "#FF453A", "#FFD60A", "#BF5AF2", "#64D2FF"
+    ]
 
     var body: some View {
         GlassEffectContainer {
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
+
+                    // 预设管理
+                    presetBar
 
                     // 画布说明
                     Text("画布模拟灵动岛展开面板。真机宽度/高度由 iOS 系统决定（高度上限 160pt），此处滑块仅预览模拟。")
@@ -21,7 +32,7 @@ struct EditorView: View {
                     IslandCanvas(selectedItemID: $selectedItemID)
 
                     // 画布实时尺寸
-                    Text("当前画布：\(Int(config.expandedWidth)) × \(Int(config.expandedHeight)) pt")
+                    Text("当前画布：\(Int(config.expandedWidth)) × \(Int(config.expandedHeight)) pt · 组件 \(config.items.count) 个")
                         .font(.caption2.monospaced())
                         .foregroundStyle(.tertiary)
                         .frame(maxWidth: .infinity)
@@ -31,7 +42,7 @@ struct EditorView: View {
                         VStack(alignment: .leading, spacing: 12) {
                             Label("组件库", systemImage: "plus.circle")
                                 .font(.headline)
-                            HStack(spacing: 10) {
+                            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
                                 ForEach(IslandItemType.allCases) { type in
                                     Button {
                                         addItem(type)
@@ -82,8 +93,13 @@ struct EditorView: View {
                     // 胶囊视觉
                     GlassCard {
                         VStack(alignment: .leading, spacing: 14) {
-                            Label("胶囊视觉（容器由系统锁定，此处为内部视觉）", systemImage: "capsule")
+                            Label("胶囊（容器由系统锁定，此处为内部视觉）", systemImage: "capsule")
                                 .font(.headline)
+
+                            TextField("胶囊左侧文字", text: Bindable(config).capsuleLeadingText)
+                                .textFieldStyle(.roundedBorder)
+                            TextField("胶囊右侧文字", text: Bindable(config).capsuleTrailingText)
+                                .textFieldStyle(.roundedBorder)
 
                             GlassSlider(
                                 title: "视觉宽度倍数",
@@ -103,50 +119,7 @@ struct EditorView: View {
                     // 选中组件参数
                     if let id = selectedItemID,
                        let idx = config.items.firstIndex(where: { $0.id == id }) {
-                        GlassCard {
-                            VStack(alignment: .leading, spacing: 14) {
-                                Label("组件：\(config.items[idx].type.rawValue)", systemImage: "paintbrush")
-                                    .font(.headline)
-
-                                if config.items[idx].type == .text {
-                                    TextField("文字内容", text: Bindable(config).items[idx].text)
-                                        .textFieldStyle(.roundedBorder)
-                                }
-                                if config.items[idx].type == .icon {
-                                    TextField("SF Symbol 名称", text: Bindable(config).items[idx].icon)
-                                        .textFieldStyle(.roundedBorder)
-                                }
-                                if config.items[idx].type == .progress {
-                                    GlassSlider(
-                                        title: "进度",
-                                        value: Bindable(config).items[idx].progress,
-                                        range: 0...1,
-                                        format: "%.0f%%"
-                                    )
-                                }
-
-                                GlassSlider(
-                                    title: "缩放",
-                                    value: Bindable(config).items[idx].scale,
-                                    range: 0.5...3.0,
-                                    format: "%.1f×"
-                                )
-                                GlassSlider(
-                                    title: "不透明度",
-                                    value: Bindable(config).items[idx].opacity,
-                                    range: 0.1...1.0,
-                                    format: "%.2f"
-                                )
-
-                                Button(role: .destructive) {
-                                    config.items.remove(at: idx)
-                                    selectedItemID = nil
-                                } label: {
-                                    Label("删除组件", systemImage: "trash")
-                                        .font(.footnote.weight(.semibold))
-                                }
-                            }
-                        }
+                        selectedItemPanel(idx)
                     }
                 }
                 .padding(16)
@@ -156,19 +129,263 @@ struct EditorView: View {
         .navigationBarTitleDisplayMode(.inline)
     }
 
+    // MARK: - 预设管理
+
+    private var presetBar: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Label("预设", systemImage: "square.stack.3d.up")
+                    .font(.headline)
+                Spacer()
+                Text("保存后启动实时活动即上岛生效")
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
+            }
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 8) {
+                    ForEach(presets) { p in
+                        Button {
+                            loadPreset(p)
+                        } label: {
+                            Text(p.name)
+                                .font(.footnote.weight(.semibold))
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 6)
+                                .background(
+                                    config.presetID == p.id
+                                        ? config.accentColor().opacity(0.35)
+                                        : Color.white.opacity(0.1)
+                                )
+                                .clipShape(Capsule())
+                        }
+                        .buttonStyle(.plain)
+                    }
+
+                    Button {
+                        newPreset()
+                    } label: {
+                        Label("新建", systemImage: "plus")
+                            .font(.footnote.weight(.semibold))
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 6)
+                            .background(Color.white.opacity(0.08))
+                            .clipShape(Capsule())
+                    }
+                    .buttonStyle(.plain)
+
+                    Button {
+                        savePreset()
+                    } label: {
+                        Label("保存", systemImage: "square.and.arrow.down")
+                            .font(.footnote.weight(.semibold))
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 6)
+                            .background(config.accentColor().opacity(0.4))
+                            .clipShape(Capsule())
+                    }
+                    .buttonStyle(.plain)
+
+                    if let p = presets.first(where: { $0.id == config.presetID }) {
+                        Button(role: .destructive) {
+                            deletePreset(p)
+                        } label: {
+                            Label("删除", systemImage: "trash")
+                                .font(.footnote.weight(.semibold))
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 6)
+                                .background(Color.red.opacity(0.2))
+                                .clipShape(Capsule())
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+            }
+        }
+    }
+
+    private func newPreset() {
+        let name = "新预设 \(presets.count + 1)"
+        let layout = IslandLayout.sample(name: name)
+        layout.apply(to: config)
+        let preset = LayoutPreset(name: name, layout: layout, isActive: true)
+        modelContext.insert(preset)
+        try? modelContext.save()
+    }
+
+    private func savePreset() {
+        let layout = IslandLayout.from(config: config)
+        if let existing = presets.first(where: { $0.id == layout.id }) {
+            existing.name = layout.name
+            existing.layoutJSON = IslandStore.encode(layout)
+            existing.updatedAt = Date()
+            existing.isActive = true
+        } else {
+            let preset = LayoutPreset(name: layout.name, layout: layout, isActive: true)
+            modelContext.insert(preset)
+        }
+        for p in presets where p.id != layout.id {
+            p.isActive = false
+        }
+        try? modelContext.save()
+    }
+
+    private func loadPreset(_ preset: LayoutPreset) {
+        guard let layout = preset.decodeLayout() else { return }
+        layout.apply(to: config)
+    }
+
+    private func deletePreset(_ preset: LayoutPreset) {
+        modelContext.delete(preset)
+        try? modelContext.save()
+        if config.presetID == preset.id {
+            config.presetID = UUID()
+            config.presetName = "未命名"
+        }
+    }
+
+    // MARK: - 组件操作
+
     private func addItem(_ type: IslandItemType) {
-        let defaults: [IslandItemType: IslandItem] = [
-            .text: IslandItem(type: .text, text: "新文字"),
-            .icon: IslandItem(type: .icon, icon: "star.fill"),
-            .progress: IslandItem(type: .progress, progress: 0.5),
-            .timer: IslandItem(type: .text, text: "00:00"),
-            .image: IslandItem(type: .icon, icon: "photo.fill")
-        ]
-        var item = defaults[type] ?? IslandItem(type: type)
+        var item = IslandItem(type: type)
+        switch type {
+        case .text:
+            item.text = "新文字"
+        case .icon:
+            item.icon = "star.fill"
+        case .progress:
+            item.progress = 0.5
+        case .timer:
+            item.targetDate = Date().addingTimeInterval(3600)
+        case .clock:
+            item.fontSize = 14
+        case .date:
+            item.targetDate = Date().addingTimeInterval(86400)
+        }
         item.x = 0
         item.y = 0
         config.items.append(item)
         selectedItemID = item.id
+    }
+
+    // MARK: - 属性面板
+
+    private func selectedItemPanel(_ idx: Int) -> some View {
+        GlassCard {
+            VStack(alignment: .leading, spacing: 14) {
+                HStack {
+                    Label("组件：\(config.items[idx].type.rawValue)", systemImage: "paintbrush")
+                        .font(.headline)
+                    Spacer()
+                    Button {
+                        let copy = config.items[idx]
+                        var dup = copy
+                        dup.id = UUID()
+                        dup.x += 12
+                        dup.y += 12
+                        config.items.append(dup)
+                        selectedItemID = dup.id
+                    } label: {
+                        Image(systemName: "doc.on.doc")
+                    }
+                    .buttonStyle(.plain)
+                    .foregroundStyle(config.accentColor())
+
+                    Button(role: .destructive) {
+                        config.items.remove(at: idx)
+                        selectedItemID = nil
+                    } label: {
+                        Image(systemName: "trash")
+                    }
+                    .buttonStyle(.plain)
+                }
+
+                switch config.items[idx].type {
+                case .text:
+                    TextField("文字内容", text: Bindable(config).items[idx].text)
+                        .textFieldStyle(.roundedBorder)
+                    alignmentPicker(idx)
+                case .icon:
+                    TextField("SF Symbol 名称", text: Bindable(config).items[idx].icon)
+                        .textFieldStyle(.roundedBorder)
+                case .progress:
+                    GlassSlider(
+                        title: "进度",
+                        value: Bindable(config).items[idx].progress,
+                        range: 0...1,
+                        format: "%.0f%%"
+                    )
+                case .timer:
+                    DatePicker(
+                        "倒计时目标",
+                        selection: Bindable(config).items[idx].targetDate,
+                        in: Date()...
+                    )
+                case .clock:
+                    EmptyView()
+                case .date:
+                    DatePicker(
+                        "目标日期",
+                        selection: Bindable(config).items[idx].targetDate
+                    )
+                }
+
+                GlassSlider(
+                    title: "字号",
+                    value: Bindable(config).items[idx].fontSize,
+                    range: 8...40,
+                    format: "%.0f pt"
+                )
+
+                Toggle("粗体", isOn: Bindable(config).items[idx].bold)
+
+                // 颜色色板
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("颜色")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                    HStack(spacing: 10) {
+                        ForEach(palette, id: \.self) { hex in
+                            Button {
+                                config.items[idx].tintHex = hex
+                            } label: {
+                                Circle()
+                                    .fill(Color(hex: hex))
+                                    .frame(width: 26, height: 26)
+                                    .overlay(
+                                        Circle().stroke(
+                                            config.items[idx].tintHex == hex ? Color.white : Color.clear,
+                                            lineWidth: 2
+                                        )
+                                    )
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                }
+
+                GlassSlider(
+                    title: "缩放",
+                    value: Bindable(config).items[idx].scale,
+                    range: 0.5...3.0,
+                    format: "%.1f×"
+                )
+                GlassSlider(
+                    title: "不透明度",
+                    value: Bindable(config).items[idx].opacity,
+                    range: 0.1...1.0,
+                    format: "%.2f"
+                )
+            }
+        }
+    }
+
+    private func alignmentPicker(_ idx: Int) -> some View {
+        Picker("对齐", selection: Bindable(config).items[idx].alignment) {
+            ForEach(IslandItem.AlignmentKey.allCases) { a in
+                Text(a.title).tag(a)
+            }
+        }
+        .pickerStyle(.segmented)
     }
 }
 
@@ -204,22 +421,31 @@ struct IslandCanvas: View {
             // 组件
             ForEach(config.items) { item in
                 if let idx = config.items.firstIndex(where: { $0.id == item.id }) {
-                    itemView(item)
+                    islandItemView(item, live: false)
                         .position(x: canvasWidth / 2 + item.x, y: canvasHeight / 2 + item.y)
                         .scaleEffect(item.scale)
                         .opacity(item.opacity)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                .stroke(
+                                    selectedItemID == item.id ? config.accentColor() : .white.opacity(0.12),
+                                    lineWidth: selectedItemID == item.id ? 2 : 1
+                                )
+                        )
+                        .padding(2)
                         .overlay(alignment: .topTrailing) {
                             if selectedItemID == item.id {
                                 Image(systemName: "scope")
                                     .font(.caption2)
                                     .foregroundStyle(.white)
-                                    .padding(4)
+                                    .padding(3)
+                                    .background(config.accentColor().opacity(0.8))
+                                    .clipShape(Circle())
                             }
                         }
                         .highPriorityGesture(
                             DragGesture(minimumDistance: 1)
                                 .onChanged { value in
-                                    // 记录一次起始位置（@State 保留，不随视图重建丢失）
                                     if dragStart == nil || dragStart?.id != item.id {
                                         dragStart = DragStart(id: item.id, x: item.x, y: item.y)
                                     }
@@ -233,38 +459,13 @@ struct IslandCanvas: View {
                                     selectedItemID = item.id
                                 }
                         )
+                        .onTapGesture {
+                            selectedItemID = item.id
+                        }
                 }
             }
         }
         .frame(width: canvasWidth, height: canvasHeight)
         .frame(maxWidth: .infinity)
-    }
-
-    @ViewBuilder
-    private func itemView(_ item: IslandItem) -> some View {
-        Group {
-            switch item.type {
-            case .text:
-                Text(item.text.isEmpty ? "文字" : item.text)
-                    .font(.system(size: 15, weight: .semibold, design: .rounded))
-                    .foregroundStyle(.white)
-            case .icon:
-                Image(systemName: item.icon.isEmpty ? "star.fill" : item.icon)
-                    .font(.system(size: 22))
-                    .foregroundStyle(Color(hex: item.tintHex))
-            case .progress:
-                ProgressView(value: item.progress)
-                    .progressViewStyle(.linear)
-                    .tint(Color(hex: item.tintHex))
-                    .frame(width: 120)
-            case .timer, .image:
-                Label(item.text.isEmpty ? "00:00" : item.text, systemImage: "timer")
-                    .font(.footnote.monospacedDigit())
-                    .foregroundStyle(.white)
-            }
-        }
-        .padding(10)
-        .background(.white.opacity(0.1))
-        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
     }
 }

@@ -100,9 +100,11 @@ struct HomeView: View {
                             VStack(alignment: .leading, spacing: 10) {
                                 Label("当前参数", systemImage: "slider.horizontal.3")
                                     .font(.headline)
+                                paramRow("当前预设", config.presetName)
                                 paramRow("展开高度", "\(Int(config.expandedHeight)) pt")
                                 paramRow("胶囊视觉宽度", String(format: "%.1f×", config.capsuleVisualWidth))
                                 paramRow("实时活动", config.autoRefresh ? "前台高频刷新" : "手动更新")
+                                paramRow("组件数", "\(config.items.count) 个")
                             }
                         }
                     }
@@ -146,7 +148,7 @@ struct HomeView: View {
         do {
             let activity = try LiveActivityManager.start(config: config)
             activeActivity = activity
-            statusText = "已启动 · 灵动岛最长 8h / 锁屏 12h"
+            statusText = "已启动「\(config.presetName)」· 灵动岛最长 8h / 锁屏 12h"
         } catch {
             statusText = "启动失败：\(error.localizedDescription)"
         }
