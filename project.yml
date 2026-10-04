@@ -57,6 +57,9 @@ targets:
   BetLandWidget:
     type: app-extension
     platform: iOS
+    # 对齐 MiniWatts 等已上线灵动岛 app 的成功配置：
+    # widget extension 用低 deployment target（iOS 17）在 iOS 27 设备上注册/渲染最稳
+    deploymentTarget: "17.0"
     sources:
       - path: BetLandWidget
       - path: BetLandShared
