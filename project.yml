@@ -1,0 +1,94 @@
+# BetLand — XcodeGen 工程定义
+# 用法：xcodegen generate   （GitHub Actions 与本地通用）
+
+name: BetLand
+
+options:
+  bundleIdPrefix: com.daijincy
+  deploymentTarget:
+    iOS: "26.0"
+  createIntermediateGroups: true
+  groupSortPosition: top
+
+settings:
+  base:
+    SWIFT_VERSION: "5.0"
+    IPHONEOS_DEPLOYMENT_TARGET: "26.0"
+    TARGETED_DEVICE_FAMILY: "1"
+    CURRENT_PROJECT_VERSION: 1
+    MARKETING_VERSION: "0.1.0"
+    CODE_SIGN_STYLE: Automatic
+    ENABLE_USER_SCRIPT_SANDBOXING: YES
+    LOCALIZATION_PREFERS_STRING_CATALOGS: YES
+    DEBUG_INFORMATION_FORMAT: dwarf
+
+targets:
+
+  BetLand:
+    type: application
+    platform: iOS
+    sources:
+      - path: BetLand
+      - path: BetLandShared
+    dependencies:
+      - target: BetLandWidget
+        embed: true
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.daijincy.betland
+        PRODUCT_NAME: BetLand
+    entitlements:
+      path: BetLand/BetLand.entitlements
+      properties:
+        com.apple.developer.usernotifications.live-activities: true
+    info:
+      path: BetLand/Info.plist
+      properties:
+        CFBundleDisplayName: BetLand
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        LSRequiresIPhoneOS: true
+        UILaunchScreen: {}
+        UIApplicationSceneManifest:
+          UIApplicationSupportsMultipleScenes: false
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationPortraitUpsideDown
+        ITSAppUsesNonExemptEncryption: false
+
+  BetLandWidget:
+    type: app-extension
+    platform: iOS
+    sources:
+      - path: BetLandWidget
+      - path: BetLandShared
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.daijincy.betland.widget
+        PRODUCT_NAME: BetLandWidget
+        SKIP_INSTALL: YES
+    entitlements:
+      path: BetLandWidget/BetLandWidget.entitlements
+      properties:
+        com.apple.developer.usernotifications.live-activities: true
+    info:
+      path: BetLandWidget/Info.plist
+      properties:
+        CFBundleDisplayName: BetLand Widget
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.widgetkit-extension
+        NSSupportsLiveActivities: true
+        NSSupportsLiveActivitiesFrequentUpdates: true
+
+schemes:
+  BetLand:
+    build:
+      targets:
+        BetLand: all
+        BetLandWidget: all
+    run:
+      config: Debug
+    archive:
+      config: Release

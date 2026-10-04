@@ -1,0 +1,17 @@
+# Xcode / build
+build/
+DerivedData/
+*.ipa
+*.xcuserstate
+xcuserdata/
+.swiftpm/
+
+# macOS
+.DS_Store
+
+# XcodeGen 生成物（由 project.yml 一键再生）
+BetLand.xcodeproj/
+
+# 编辑器
+.vscode/
+.idea/
