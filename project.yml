@@ -37,10 +37,6 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.daijincy.betland
         PRODUCT_NAME: BetLand
-    entitlements:
-      path: BetLand/BetLand.entitlements
-      properties:
-        com.apple.developer.usernotifications.live-activities: true
     info:
       path: BetLand/Info.plist
       properties:
@@ -69,10 +65,6 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: com.daijincy.betland.widget
         PRODUCT_NAME: BetLandWidget
         SKIP_INSTALL: YES
-    entitlements:
-      path: BetLandWidget/BetLandWidget.entitlements
-      properties:
-        com.apple.developer.usernotifications.live-activities: true
     info:
       path: BetLandWidget/Info.plist
       properties:
