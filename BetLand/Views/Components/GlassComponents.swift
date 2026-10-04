@@ -40,7 +40,7 @@ struct GlassButton: View {
             .padding(.vertical, 12)
             .frame(maxWidth: .infinity)
             .background(tint.opacity(prominent ? 0.18 : 0.08))
-            .glassEffect((prominent ? .regular : .clear).interactive(), in: .rect(cornerRadius: 18))
+            .glassEffect((prominent ? Glass.regular : Glass.clear).interactive(), in: .rect(cornerRadius: 18))
         }
         .buttonStyle(.plain)
     }
