@@ -12,8 +12,7 @@ struct GlassCard<Content: View>: View {
             .padding(18)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(tint.opacity(0.12))
-            .glassEffect(.regular, in: .rect(cornerRadius: cornerRadius))
-            .interactive()
+            .glassEffect(.regular.interactive(), in: .rect(cornerRadius: cornerRadius))
     }
 }
 
@@ -41,8 +40,7 @@ struct GlassButton: View {
             .padding(.vertical, 12)
             .frame(maxWidth: .infinity)
             .background(tint.opacity(prominent ? 0.18 : 0.08))
-            .glassEffect(prominent ? .regular : .clear, in: .rect(cornerRadius: 18))
-            .interactive()
+            .glassEffect((prominent ? .regular : .clear).interactive(), in: .rect(cornerRadius: 18))
         }
         .buttonStyle(.plain)
     }
@@ -98,7 +96,6 @@ struct GlassToggle: View {
                 .tint(.white)
         }
         .padding(14)
-        .glassEffect(.regular, in: .rect(cornerRadius: 18))
-        .interactive()
+        .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 18))
     }
 }

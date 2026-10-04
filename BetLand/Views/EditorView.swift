@@ -39,8 +39,7 @@ struct EditorView: View {
                                         }
                                         .frame(maxWidth: .infinity)
                                         .padding(.vertical, 10)
-                                        .glassEffect(.clear, in: .rect(cornerRadius: 14))
-                                        .interactive()
+                                        .glassEffect(.clear.interactive(), in: .rect(cornerRadius: 14))
                                     }
                                     .buttonStyle(.plain)
                                 }
