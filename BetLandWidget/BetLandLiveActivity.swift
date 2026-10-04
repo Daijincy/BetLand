@@ -107,26 +107,25 @@ struct BetLandLiveActivity: Widget {
         }
     }
 
-    /// 区域内按相对画布坐标自由定位
+    /// 区域内按画布坐标自由定位（安全修饰符 offset，无 GeometryReader，避免真机渲染异常）
     private func regionView(
         _ items: [IslandItem],
         canvas: IslandLayout,
         yRange: ClosedRange<Double>
     ) -> some View {
-        GeometryReader { geo in
-            ZStack(alignment: .topLeading) {
-                ForEach(items) { item in
-                    islandItemView(item, live: true)
-                        .scaleEffect(item.scale)
-                        .opacity(item.opacity)
-                        .position(
-                            x: geo.size.width * item.normalizedX(canvasWidth: canvas.expandedWidth),
-                            y: geo.size.height * item.normalizedY(in: yRange, canvasHeight: canvas.expandedHeight)
-                        )
-                }
+        ZStack(alignment: .center) {
+            ForEach(items) { item in
+                islandItemView(item, live: true)
+                    .scaleEffect(item.scale)
+                    .opacity(item.opacity)
+                    // 相对区域中心偏移；区域中心对应画布 y 范围中心
+                    .offset(
+                        x: item.x,
+                        y: item.y - (yRange.lowerBound + yRange.upperBound) / 2
+                    )
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     // MARK: - 展开态（默认回退）
@@ -210,23 +209,16 @@ private struct LockScreenLiveActivityView: View {
 
     var body: some View {
         if let layout = IslandStore.decode(context.state.layoutJSON) {
-            GeometryReader { geo in
-                ZStack(alignment: .topLeading) {
-                    ForEach(layout.items) { item in
-                        islandItemView(item, live: true)
-                            .scaleEffect(item.scale)
-                            .opacity(item.opacity)
-                            .position(
-                                x: geo.size.width * item.normalizedX(canvasWidth: layout.expandedWidth),
-                                y: geo.size.height * item.normalizedY(
-                                    in: -layout.expandedHeight / 2 ... layout.expandedHeight / 2,
-                                    canvasHeight: layout.expandedHeight
-                                )
-                            )
-                    }
+            ZStack(alignment: .center) {
+                ForEach(layout.items) { item in
+                    islandItemView(item, live: true)
+                        .scaleEffect(item.scale)
+                        .opacity(item.opacity)
+                        // 画布坐标相对锁屏卡片中心偏移
+                        .offset(x: item.x, y: item.y)
                 }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
         } else {
             // 默认锁屏视图
             HStack(spacing: 12) {
