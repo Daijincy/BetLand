@@ -126,6 +126,5 @@ private struct LockScreenLiveActivityView: View {
             Spacer()
         }
         .padding(14)
-        .glassBackgroundEffect()
     }
 }
