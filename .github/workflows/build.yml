@@ -29,6 +29,9 @@ jobs:
       - name: Install XcodeGen
         run: brew install xcodegen
 
+      - name: Compute build number
+        run: echo "CURRENT_PROJECT_VERSION=$(git rev-list --count HEAD)" >> "$GITHUB_ENV"
+
       - name: Generate Xcode project
         run: xcodegen generate
 
@@ -43,6 +46,7 @@ jobs:
             -derivedDataPath build \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO \
+            CURRENT_PROJECT_VERSION="$CURRENT_PROJECT_VERSION" \
             build
 
       - name: Package unsigned IPA
