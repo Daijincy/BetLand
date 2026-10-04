@@ -12,28 +12,15 @@ struct BetLandLiveActivity: Widget {
             LockScreenLiveActivityView(context: context)
         } dynamicIsland: { context in
             DynamicIsland {
-                // 展开态：按画布坐标分区自由摆放
-                if let layout = IslandStore.decode(context.state.layoutJSON) {
-                    let regions = ExpandedRegions.split(layout)
-                    DynamicIslandExpandedRegion(.leading) {
-                        regionView(regions.leading, canvas: layout, yRange: -layout.expandedHeight / 2 ... layout.expandedHeight * 0.45)
-                    }
-                    DynamicIslandExpandedRegion(.trailing) {
-                        regionView(regions.trailing, canvas: layout, yRange: -layout.expandedHeight / 2 ... layout.expandedHeight * 0.45)
-                    }
-                    DynamicIslandExpandedRegion(.bottom) {
-                        regionView(regions.bottom, canvas: layout, yRange: layout.expandedHeight * 0.45 ... layout.expandedHeight / 2)
-                    }
-                } else {
-                    DynamicIslandExpandedRegion(.leading) {
-                        leadingExpanded(context)
-                    }
-                    DynamicIslandExpandedRegion(.trailing) {
-                        trailingExpanded(context)
-                    }
-                    DynamicIslandExpandedRegion(.bottom) {
-                        bottomExpanded(context)
-                    }
+                // 展开态：按画布坐标分区自由摆放（内容由 @ViewBuilder 函数分支）
+                DynamicIslandExpandedRegion(.leading) {
+                    leadingRegion(context)
+                }
+                DynamicIslandExpandedRegion(.trailing) {
+                    trailingRegion(context)
+                }
+                DynamicIslandExpandedRegion(.bottom) {
+                    bottomRegion(context)
                 }
             } compactLeading: {
                 compactLeading(context)
@@ -73,6 +60,50 @@ struct BetLandLiveActivity: Widget {
                 trailing: trailing.sorted { $0.x > $1.x },
                 bottom: bottom.sorted { $0.y < $1.y }
             )
+        }
+    }
+
+    // MARK: - 展开区内容（有自定义布局则渲染，否则默认）
+
+    @ViewBuilder
+    private func leadingRegion(_ context: ActivityViewContext<BetLandAttributes>) -> some View {
+        if let layout = IslandStore.decode(context.state.layoutJSON) {
+            let regions = ExpandedRegions.split(layout)
+            regionView(
+                regions.leading,
+                canvas: layout,
+                yRange: -layout.expandedHeight / 2 ... layout.expandedHeight * 0.45
+            )
+        } else {
+            leadingExpanded(context)
+        }
+    }
+
+    @ViewBuilder
+    private func trailingRegion(_ context: ActivityViewContext<BetLandAttributes>) -> some View {
+        if let layout = IslandStore.decode(context.state.layoutJSON) {
+            let regions = ExpandedRegions.split(layout)
+            regionView(
+                regions.trailing,
+                canvas: layout,
+                yRange: -layout.expandedHeight / 2 ... layout.expandedHeight * 0.45
+            )
+        } else {
+            trailingExpanded(context)
+        }
+    }
+
+    @ViewBuilder
+    private func bottomRegion(_ context: ActivityViewContext<BetLandAttributes>) -> some View {
+        if let layout = IslandStore.decode(context.state.layoutJSON) {
+            let regions = ExpandedRegions.split(layout)
+            regionView(
+                regions.bottom,
+                canvas: layout,
+                yRange: layout.expandedHeight * 0.45 ... layout.expandedHeight / 2
+            )
+        } else {
+            bottomExpanded(context)
         }
     }
 
@@ -196,9 +227,6 @@ private struct LockScreenLiveActivityView: View {
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
-            .containerBackground(for: .activity) {
-                Color.black.opacity(0.8)
-            }
         } else {
             // 默认锁屏视图
             HStack(spacing: 12) {
@@ -217,9 +245,6 @@ private struct LockScreenLiveActivityView: View {
                 Spacer()
             }
             .padding(14)
-            .containerBackground(for: .activity) {
-                Color.black.opacity(0.8)
-            }
         }
     }
 }

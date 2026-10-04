@@ -173,7 +173,7 @@ struct IslandItem: Identifiable, Codable, Hashable {
             IslandItem(type: .icon, x: -140, y: -30, icon: "sparkles", tintHex: "#FFD60A", fontSize: 20),
             IslandItem(type: .text, x: -20, y: -30, text: "BetLand", fontSize: 18),
             IslandItem(type: .progress, x: 0, y: 30, progress: 0.6, tintHex: "#0A84FF", fontSize: 14),
-            IslandItem(type: .timer, x: 120, y: 30, targetDate: Date().addingTimeInterval(7200), tintHex: "#30D158", fontSize: 14)
+            IslandItem(type: .timer, x: 120, y: 30, tintHex: "#30D158", fontSize: 14, targetDate: Date().addingTimeInterval(7200))
         ]
     }
 }
