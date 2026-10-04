@@ -1,5 +1,6 @@
 import SwiftUI
 import ActivityKit
+import Darwin
 
 // MARK: - 首页
 
@@ -7,6 +8,7 @@ struct HomeView: View {
     @Environment(IslandConfig.self) private var config
     @State private var activeActivity: Activity<BetLandAttributes>?
     @State private var statusText = "未启动实时活动"
+    @State private var diagnostics = ""
 
     var body: some View {
         NavigationStack {
@@ -49,6 +51,29 @@ struct HomeView: View {
                                     .font(.caption)
                                     .foregroundStyle(.secondary)
                                     .monospaced()
+                            }
+                        }
+
+                        // 运行诊断
+                        GlassCard {
+                            VStack(alignment: .leading, spacing: 12) {
+                                HStack {
+                                    Label("运行诊断", systemImage: "stethoscope")
+                                        .font(.headline)
+                                    Spacer()
+                                    Button {
+                                        refreshDiagnostics()
+                                    } label: {
+                                        Label("刷新", systemImage: "arrow.clockwise")
+                                            .font(.caption.weight(.semibold))
+                                    }
+                                    .buttonStyle(.plain)
+                                    .foregroundStyle(config.accentColor())
+                                }
+                                Text(diagnostics.isEmpty ? "点「刷新」查看运行状态" : diagnostics)
+                                    .font(.caption2.monospaced())
+                                    .foregroundStyle(.secondary)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
                             }
                         }
 
@@ -132,6 +157,37 @@ struct HomeView: View {
             await LiveActivityManager.endAll()
             activeActivity = nil
             statusText = "已结束全部实时活动"
+        }
+    }
+
+    // MARK: - 运行诊断
+
+    private func refreshDiagnostics() {
+        var lines: [String] = []
+        lines.append("Live Activities 授权：\(ActivityAuthorizationInfo().areActivitiesEnabled ? "已开启" : "已关闭")")
+        lines.append("当前活动数：\(LiveActivityManager.allActivities().count)")
+        lines.append("设备型号：\(deviceModelName())")
+        lines.append("灵动岛硬件：\(hasDynamicIsland ? "支持" : "不支持")")
+        lines.append("系统版本：iOS \(UIDevice.current.systemVersion)")
+        lines.append("App 版本：\(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "?")")
+        diagnostics = lines.joined(separator: "\n")
+    }
+
+    private var hasDynamicIsland: Bool {
+        if let scene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+           let window = scene.windows.first {
+            return window.safeAreaInsets.top >= 59
+        }
+        return false
+    }
+
+    private func deviceModelName() -> String {
+        var systemInfo = utsname()
+        uname(&systemInfo)
+        let mirror = Mirror(reflecting: systemInfo.machine)
+        return mirror.children.reduce("") { id, element in
+            guard let value = element.value as? Int8, value != 0 else { return id }
+            return id + String(UnicodeScalar(UInt8(value)))
         }
     }
 }
