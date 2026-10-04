@@ -12,14 +12,19 @@ struct EditorView: View {
                 VStack(alignment: .leading, spacing: 16) {
 
                     // 画布说明
-                    Text("画布模拟灵动岛展开面板（iOS 系统上限：宽 371pt × 高 160pt），拖拽组件调整位置。")
+                    Text("画布模拟灵动岛展开面板。真机宽度/高度由 iOS 系统决定（高度上限 160pt），此处滑块仅预览模拟。")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                         .padding(.horizontal, 2)
 
                     // 画布
                     IslandCanvas(selectedItemID: $selectedItemID)
-                        .frame(height: 240)
+
+                    // 画布实时尺寸
+                    Text("当前画布：\(Int(config.expandedWidth)) × \(Int(config.expandedHeight)) pt")
+                        .font(.caption2.monospaced())
+                        .foregroundStyle(.tertiary)
+                        .frame(maxWidth: .infinity)
 
                     // 组件库
                     GlassCard {
@@ -53,6 +58,12 @@ struct EditorView: View {
                             Label("展开面板", systemImage: "rectangle.3.group")
                                 .font(.headline)
 
+                            GlassSlider(
+                                title: "展开宽度（预览）",
+                                value: Bindable(config).expandedWidth,
+                                range: 200...450,
+                                format: "%.0f pt"
+                            )
                             GlassSlider(
                                 title: "展开高度",
                                 value: Bindable(config).expandedHeight,
@@ -166,10 +177,17 @@ struct EditorView: View {
 struct IslandCanvas: View {
     @Environment(IslandConfig.self) private var config
     @Binding var selectedItemID: UUID?
-    @State private var dragOffset: CGSize = .zero
 
-    private let canvasWidth: CGFloat = 371
-    private let canvasHeight: CGFloat = 160
+    /// 拖拽起始状态：记录按下瞬间组件位置，防止视图重建导致的位移叠加
+    private struct DragStart {
+        let id: UUID
+        let x: Double
+        let y: Double
+    }
+    @State private var dragStart: DragStart?
+
+    private var canvasWidth: CGFloat { CGFloat(config.expandedWidth) }
+    private var canvasHeight: CGFloat { CGFloat(config.expandedHeight) }
 
     var body: some View {
         ZStack {
@@ -198,23 +216,27 @@ struct IslandCanvas: View {
                                     .padding(4)
                             }
                         }
-                        .gesture(
-                            DragGesture()
+                        .highPriorityGesture(
+                            DragGesture(minimumDistance: 1)
                                 .onChanged { value in
-                                    config.items[idx].x = (canvasWidth / 2 + item.x + value.translation.width - canvasWidth / 2)
-                                    config.items[idx].y = (canvasHeight / 2 + item.y + value.translation.height - canvasHeight / 2)
+                                    // 记录一次起始位置（@State 保留，不随视图重建丢失）
+                                    if dragStart == nil || dragStart?.id != item.id {
+                                        dragStart = DragStart(id: item.id, x: item.x, y: item.y)
+                                    }
+                                    guard let start = dragStart, start.id == item.id,
+                                          let i = config.items.firstIndex(where: { $0.id == item.id }) else { return }
+                                    config.items[i].x = start.x + Double(value.translation.width)
+                                    config.items[i].y = start.y + Double(value.translation.height)
                                 }
                                 .onEnded { _ in
+                                    dragStart = nil
                                     selectedItemID = item.id
                                 }
                         )
-                        .onTapGesture {
-                            selectedItemID = item.id
-                        }
                 }
             }
         }
-        .frame(width: canvasWidth + 24, height: 220)
+        .frame(width: canvasWidth, height: canvasHeight)
         .frame(maxWidth: .infinity)
     }
 

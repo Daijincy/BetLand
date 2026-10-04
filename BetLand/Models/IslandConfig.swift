@@ -52,7 +52,8 @@ struct IslandItem: Identifiable, Codable, Hashable {
 @Observable
 final class IslandConfig {
 
-    // 展开面板（系统上限内可调）
+    // 展开面板（系统上限内可调；真机宽度由系统决定，预览为模拟）
+    var expandedWidth: Double = 371      // 预览画布宽度
     var expandedHeight: Double = 160      // 官方最大 160pt
     var expandedCornerRadius: Double = 44
     var expandedBackgroundOpacity: Double = 0.95
