@@ -1,12 +1,16 @@
 import SwiftUI
 import ActivityKit
+import SwiftData
 import Darwin
 
 // MARK: - 首页（iScreen 式模板库主页）
 
 struct HomeView: View {
     @Environment(IslandConfig.self) private var config
+    @Environment(\.modelContext) private var modelContext
+    @Query private var presets: [LayoutPreset]
     @State private var activeActivity: Activity<BetLandAttributes>?
+    @State private var didRestore = false
     @State private var statusText = "未启动实时活动"
     @State private var diagnostics = ""
     @State private var liveEnabled = ActivityAuthorizationInfo().areActivitiesEnabled
@@ -110,6 +114,7 @@ struct HomeView: View {
             .onAppear {
                 liveEnabled = ActivityAuthorizationInfo().areActivitiesEnabled
                 LiveActivitySync.shared.register(LiveActivityManager.allActivities().first)
+                restoreSavedConfigOnce()
             }
         }
     }
@@ -173,6 +178,17 @@ struct HomeView: View {
                 .foregroundStyle(.secondary)
                 .lineLimit(1)
         }
+    }
+
+    // MARK: - 启动时恢复上次保存的模板 + 胶囊配置（仅一次）
+
+    private func restoreSavedConfigOnce() {
+        guard !didRestore else { return }
+        didRestore = true
+        let active = presets.first(where: { $0.isActive }) ?? presets.first
+        guard let snap = active?.decodeConfig() else { return }
+        snap.apply(to: config)
+        config.presetName = active?.name ?? config.presetName
     }
 
     // MARK: - 实时活动操作

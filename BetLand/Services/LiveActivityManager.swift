@@ -16,7 +16,8 @@ enum LiveActivityManager {
             accentHex: config.accentHex,
             templateJSON: config.template.kind == .none
                 ? ""
-                : IslandTemplateConfig.encode(config.template)
+                : IslandTemplateConfig.encode(config.template),
+            capsuleIcon: config.capsuleIcon
         )
         let content = ActivityContent(state: state, staleDate: nil)
         return try Activity.request(
@@ -39,7 +40,8 @@ enum LiveActivityManager {
             accentHex: config.accentHex,
             templateJSON: config.template.kind == .none
                 ? ""
-                : IslandTemplateConfig.encode(config.template)
+                : IslandTemplateConfig.encode(config.template),
+            capsuleIcon: config.capsuleIcon
         )
         let content = ActivityContent(state: state, staleDate: nil)
         await activity.update(content)

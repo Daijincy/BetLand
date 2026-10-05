@@ -11,19 +11,21 @@ struct BetLandAttributes: ActivityAttributes {
         var progress: Double = 0.0
         var accentHex: String = "#0A84FF"
         var templateJSON: String = ""
+        var capsuleIcon: String = "sparkles"
 
         init() {}
 
-        init(title: String, subtitle: String, progress: Double, accentHex: String, templateJSON: String = "") {
+        init(title: String, subtitle: String, progress: Double, accentHex: String, templateJSON: String = "", capsuleIcon: String = "sparkles") {
             self.title = title
             self.subtitle = subtitle
             self.progress = progress
             self.accentHex = accentHex
             self.templateJSON = templateJSON
+            self.capsuleIcon = capsuleIcon
         }
 
         private enum CodingKeys: String, CodingKey {
-            case title, subtitle, progress, accentHex, templateJSON
+            case title, subtitle, progress, accentHex, templateJSON, capsuleIcon
         }
 
         init(from decoder: Decoder) throws {
@@ -33,6 +35,7 @@ struct BetLandAttributes: ActivityAttributes {
             progress = try c.decodeIfPresent(Double.self, forKey: .progress) ?? 0.0
             accentHex = try c.decodeIfPresent(String.self, forKey: .accentHex) ?? "#0A84FF"
             templateJSON = try c.decodeIfPresent(String.self, forKey: .templateJSON) ?? ""
+            capsuleIcon = try c.decodeIfPresent(String.self, forKey: .capsuleIcon) ?? "sparkles"
         }
 
         func encode(to encoder: Encoder) throws {
@@ -42,6 +45,7 @@ struct BetLandAttributes: ActivityAttributes {
             try c.encode(progress, forKey: .progress)
             try c.encode(accentHex, forKey: .accentHex)
             try c.encode(templateJSON, forKey: .templateJSON)
+            try c.encode(capsuleIcon, forKey: .capsuleIcon)
         }
     }
 

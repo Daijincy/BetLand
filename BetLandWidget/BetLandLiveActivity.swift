@@ -115,8 +115,9 @@ struct BetLandLiveActivity: Widget {
 
     private func compactLeading(_ context: ActivityViewContext<BetLandAttributes>) -> some View {
         HStack(spacing: 4) {
-            Image(systemName: "sparkles")
+            Image(systemName: context.state.capsuleIcon.isEmpty ? "sparkles" : context.state.capsuleIcon)
                 .font(.caption.weight(.bold))
+                .foregroundStyle(Color(hex: context.state.accentHex))
             Text(context.state.title)
                 .font(.caption.weight(.semibold))
                 .lineLimit(1)
@@ -128,13 +129,14 @@ struct BetLandLiveActivity: Widget {
         Text(context.state.subtitle)
             .font(.caption.weight(.bold))
             .monospacedDigit()
+            .lineLimit(1)
             .foregroundStyle(.white)
     }
 
     // MARK: - 迷你态
 
     private func minimal(_ context: ActivityViewContext<BetLandAttributes>) -> some View {
-        Image(systemName: "sparkles")
+        Image(systemName: context.state.capsuleIcon.isEmpty ? "sparkles" : context.state.capsuleIcon)
             .font(.caption.weight(.bold))
             .foregroundStyle(Color(hex: context.state.accentHex))
     }

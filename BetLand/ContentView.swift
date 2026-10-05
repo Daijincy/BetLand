@@ -8,10 +8,6 @@ struct ContentView: View {
             TabView {
                 HomeView()
                     .tabItem { Label("動態島", systemImage: "sparkles") }
-                NavigationStack {
-                    EditorView()
-                }
-                .tabItem { Label("编辑器", systemImage: "slider.horizontal.3") }
                 SettingsView()
                     .tabItem { Label("设置", systemImage: "gearshape") }
             }
