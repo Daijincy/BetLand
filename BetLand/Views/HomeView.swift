@@ -2,31 +2,56 @@ import SwiftUI
 import ActivityKit
 import Darwin
 
-// MARK: - 首页
+// MARK: - 首页（iScreen 式模板库主页）
 
 struct HomeView: View {
     @Environment(IslandConfig.self) private var config
     @State private var activeActivity: Activity<BetLandAttributes>?
     @State private var statusText = "未启动实时活动"
     @State private var diagnostics = ""
+    @State private var liveEnabled = ActivityAuthorizationInfo().areActivitiesEnabled
 
     var body: some View {
         NavigationStack {
             GlassEffectContainer {
                 ScrollView {
-                    VStack(alignment: .leading, spacing: 16) {
+                    VStack(alignment: .leading, spacing: 18) {
 
-                        // 顶部品牌区
-                        VStack(alignment: .leading, spacing: 6) {
-                            Text("BetLand")
-                                .font(.system(size: 34, weight: .heavy, design: .rounded))
-                            Text("全自定义灵动岛 · iOS 26 Liquid Glass")
-                                .font(.subheadline)
-                                .foregroundStyle(.secondary)
+                        // 顶部：动态岛 + 开放灵动岛开关
+                        HStack {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("BetLand")
+                                    .font(.system(size: 28, weight: .heavy, design: .rounded))
+                                Text("動態島 · 全自定义灵动岛")
+                                    .font(.subheadline)
+                                    .foregroundStyle(.secondary)
+                            }
+                            Spacer()
+                            VStack(alignment: .trailing, spacing: 2) {
+                                Text(liveEnabled ? "已開啟" : "已關閉")
+                                    .font(.caption.weight(.semibold))
+                                    .foregroundStyle(liveEnabled ? Color.green : Color.red)
+                                Toggle("", isOn: Binding(
+                                    get: { liveEnabled },
+                                    set: { on in
+                                        // 系统授权只能在系统设置中开启
+                                        if let url = URL(string: UIApplication.openSettingsURLString) {
+                                            UIApplication.shared.open(url)
+                                        }
+                                    }
+                                ))
+                                .labelsHidden()
+                                .tint(Color(hex: "#0A84FF"))
+                            }
                         }
-                        .padding(.top, 8)
+                        .padding(.top, 6)
 
-                        // 实时活动控制卡
+                        // 分类模板板块
+                        ForEach(IslandCategory.allCases) { cat in
+                            categorySection(cat)
+                        }
+
+                        // 实时活动控制
                         GlassCard {
                             VStack(alignment: .leading, spacing: 14) {
                                 Label("实时活动控制", systemImage: "livephoto")
@@ -76,69 +101,77 @@ struct HomeView: View {
                                     .frame(maxWidth: .infinity, alignment: .leading)
                             }
                         }
-
-                        // 功能入口
-                        GlassCard {
-                            VStack(alignment: .leading, spacing: 14) {
-                                Label("功能入口", systemImage: "square.grid.2x2")
-                                    .font(.headline)
-
-                                NavigationLink { EditorView() } label: {
-                                    entryRow("布局编辑器", "slider.horizontal.3", "自由摆放展开面板控件")
-                                }
-                                .buttonStyle(.plain)
-
-                                NavigationLink { SettingsView() } label: {
-                                    entryRow("设置", "gearshape.fill", "保活 / 频繁更新 / 配色")
-                                }
-                                .buttonStyle(.plain)
-                            }
-                        }
-
-                        // 参数速览
-                        GlassCard {
-                            VStack(alignment: .leading, spacing: 10) {
-                                Label("当前参数", systemImage: "slider.horizontal.3")
-                                    .font(.headline)
-                                paramRow("当前预设", config.presetName)
-                                paramRow("展开高度", "\(Int(config.expandedHeight)) pt")
-                                paramRow("胶囊视觉宽度", String(format: "%.1f×", config.capsuleVisualWidth))
-                                paramRow("实时活动", config.autoRefresh ? "前台高频刷新" : "手动更新")
-                                paramRow("组件数", "\(config.items.count) 个")
-                            }
-                        }
                     }
                     .padding(16)
                 }
             }
-            .navigationTitle("BetLand")
-            .navigationBarTitleDisplayMode(.inline)
-        }
-    }
-
-    private func entryRow(_ title: String, _ icon: String, _ sub: String) -> some View {
-        HStack(spacing: 12) {
-            Image(systemName: icon)
-                .font(.title3)
-                .foregroundStyle(config.accentColor())
-                .frame(width: 34)
-            VStack(alignment: .leading, spacing: 2) {
-                Text(title).font(.body.weight(.medium))
-                Text(sub).font(.caption).foregroundStyle(.secondary)
+            .navigationTitle("")
+            .navigationBarHidden(true)
+            .onAppear {
+                liveEnabled = ActivityAuthorizationInfo().areActivitiesEnabled
+                LiveActivitySync.shared.register(LiveActivityManager.allActivities().first)
             }
-            Spacer()
-            Image(systemName: "chevron.right")
-                .font(.caption.weight(.bold))
-                .foregroundStyle(.tertiary)
         }
-        .padding(.vertical, 4)
     }
 
-    private func paramRow(_ title: String, _ value: String) -> some View {
-        HStack {
-            Text(title).font(.footnote)
-            Spacer()
-            Text(value).font(.footnote.monospacedDigit()).foregroundStyle(.secondary)
+    // MARK: - 分类板块（标题 + 两列模板入口）
+
+    private func categorySection(_ cat: IslandCategory) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                Label(cat.rawValue, systemImage: cat.systemImage)
+                    .font(.headline)
+                Spacer()
+                Button {
+                    // 查看更多：滚动到下一板块（暂为占位）
+                } label: {
+                    Text("查看更多 >")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                .buttonStyle(.plain)
+            }
+
+            let templates = IslandTemplate.allCases.filter { $0.category == cat && $0 != .none }
+            LazyVGrid(columns: [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)], spacing: 12) {
+                ForEach(templates) { t in
+                    NavigationLink {
+                        TemplateDetailView(kind: t)
+                    } label: {
+                        templateCard(t)
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+        }
+    }
+
+    private func templateCard(_ t: IslandTemplate) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            ZStack {
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .fill(
+                        LinearGradient(
+                            colors: [Color(hex: "#0A84FF").opacity(0.35), Color(hex: "#64D2FF").opacity(0.15)],
+                            startPoint: .topLeading, endPoint: .bottomTrailing
+                        )
+                    )
+                Image(systemName: t.systemImage)
+                    .font(.system(size: 34))
+                    .foregroundStyle(Color(hex: "#64D2FF"))
+            }
+            .frame(height: 84)
+            .overlay(
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .stroke(.white.opacity(0.12), lineWidth: 1)
+            )
+
+            Text(t.rawValue)
+                .font(.footnote.weight(.bold))
+            Text(t.summary)
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
         }
     }
 

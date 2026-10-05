@@ -1,7 +1,25 @@
 import SwiftUI
 import Foundation
 
-// MARK: - 展开面板模板（iScreen 式预设模板，随 ContentState 传递）
+// MARK: - 展开面板模板分类
+
+enum IslandCategory: String, CaseIterable, Identifiable {
+    case efficiency = "效率工具"
+    case fun = "趣味玩法"
+    case service = "出行与服务"
+
+    var id: String { rawValue }
+
+    var systemImage: String {
+        switch self {
+        case .efficiency: "timer"
+        case .fun: "face.smiling"
+        case .service: "car.fill"
+        }
+    }
+}
+
+// MARK: - 展开面板模板（iScreen 式"島"体系，随 ContentState 传递）
 
 enum IslandTemplate: String, Codable, CaseIterable, Identifiable {
     case none = "默认"
@@ -10,8 +28,24 @@ enum IslandTemplate: String, Codable, CaseIterable, Identifiable {
     case delivery = "外卖配送"
     case ride = "打车行程"
     case appShortcut = "应用跳转"
+    case timer = "计时岛"
+    case calendar = "日历岛"
+    case weather = "天气岛"
+    case pet = "宠物岛"
+    case plant = "植物岛"
+    case album = "相簿岛"
+    case signature = "签名岛"
 
     var id: String { rawValue }
+
+    var category: IslandCategory {
+        switch self {
+        case .leftImage, .timer, .calendar, .weather: .efficiency
+        case .character, .pet, .plant, .album, .signature: .fun
+        case .delivery, .ride, .appShortcut: .service
+        case .none: .efficiency
+        }
+    }
 
     var systemImage: String {
         switch self {
@@ -21,6 +55,31 @@ enum IslandTemplate: String, Codable, CaseIterable, Identifiable {
         case .delivery: "takeoutbag.and.cup.and.straw.fill"
         case .ride: "car.fill"
         case .appShortcut: "app.badge"
+        case .timer: "timer"
+        case .calendar: "calendar"
+        case .weather: "cloud.sun.fill"
+        case .pet: "pawprint.fill"
+        case .plant: "leaf.fill"
+        case .album: "photo.on.rectangle.angled"
+        case .signature: "signature"
+        }
+    }
+
+    var summary: String {
+        switch self {
+        case .none: "自由布局画布"
+        case .leftImage: "左侧大图 + 右侧文字"
+        case .character: "常驻动画人偶"
+        case .delivery: "外卖配送进度"
+        case .ride: "打车行程信息"
+        case .appShortcut: "应用图标快捷跳转"
+        case .timer: "倒计时大数字"
+        case .calendar: "本周日历速览"
+        case .weather: "天气与温度"
+        case .pet: "宠物陪伴常驻"
+        case .plant: "植物养成进度"
+        case .album: "相簿标题展示"
+        case .signature: "个性签名文字"
         }
     }
 }
@@ -77,6 +136,39 @@ struct IslandTemplateConfig: Codable, Equatable {
     // 应用跳转
     var shortcuts: [AppShortcut] = IslandTemplateConfig.defaultShortcuts()
 
+    // 计时岛
+    var timerTargetDate: Date = Date().addingTimeInterval(3600)
+    var timerNote: String = "距离目标"
+
+    // 日历岛
+    var calendarNote: String = "今日安排"
+
+    // 天气岛
+    var weatherCity: String = "襄阳市"
+    var weatherSymbol: String = "cloud.sun.fill"
+    var weatherTemp: String = "13-23°"
+    var weatherRange: String = "晴 · 微风"
+
+    // 宠物岛
+    var petEmoji: String = "🐱"
+    var petName: String = "小咪"
+    var petStatus: String = "元气满满"
+
+    // 植物岛
+    var plantName: String = "向日葵"
+    var plantDays: Int = 5
+    var plantProgress: Double = 0.6
+    var plantStatus: String = "快来岛上种花吧！"
+
+    // 相簿岛
+    var albumTitle: String = "相簿"
+    var albumSubtitle: String = "我的收藏"
+    var albumSymbol: String = "photo.fill"
+
+    // 签名岛
+    var signatureText: String = "公主请加油"
+    var signatureSubtext: String = "日有熹微"
+
     init(kind: IslandTemplate = .none) {
         self.kind = kind
     }
@@ -87,6 +179,13 @@ struct IslandTemplateConfig: Codable, Equatable {
         case deliveryStatus, deliveryProgress, deliveryETA, merchantName, riderName, deliveryAddress
         case ridePlate, rideDriver, rideCar, rideETA, rideProgress
         case shortcuts
+        case timerTargetDate, timerNote
+        case calendarNote
+        case weatherCity, weatherSymbol, weatherTemp, weatherRange
+        case petEmoji, petName, petStatus
+        case plantName, plantDays, plantProgress, plantStatus
+        case albumTitle, albumSubtitle, albumSymbol
+        case signatureText, signatureSubtext
     }
 
     init(from decoder: Decoder) throws {
@@ -111,6 +210,25 @@ struct IslandTemplateConfig: Codable, Equatable {
         rideETA = try c.decodeIfPresent(String.self, forKey: .rideETA) ?? "3 分钟"
         rideProgress = try c.decodeIfPresent(Double.self, forKey: .rideProgress) ?? 0.7
         shortcuts = try c.decodeIfPresent([AppShortcut].self, forKey: .shortcuts) ?? IslandTemplateConfig.defaultShortcuts()
+        timerTargetDate = try c.decodeIfPresent(Date.self, forKey: .timerTargetDate) ?? Date().addingTimeInterval(3600)
+        timerNote = try c.decodeIfPresent(String.self, forKey: .timerNote) ?? "距离目标"
+        calendarNote = try c.decodeIfPresent(String.self, forKey: .calendarNote) ?? "今日安排"
+        weatherCity = try c.decodeIfPresent(String.self, forKey: .weatherCity) ?? "襄阳市"
+        weatherSymbol = try c.decodeIfPresent(String.self, forKey: .weatherSymbol) ?? "cloud.sun.fill"
+        weatherTemp = try c.decodeIfPresent(String.self, forKey: .weatherTemp) ?? "13-23°"
+        weatherRange = try c.decodeIfPresent(String.self, forKey: .weatherRange) ?? "晴 · 微风"
+        petEmoji = try c.decodeIfPresent(String.self, forKey: .petEmoji) ?? "🐱"
+        petName = try c.decodeIfPresent(String.self, forKey: .petName) ?? "小咪"
+        petStatus = try c.decodeIfPresent(String.self, forKey: .petStatus) ?? "元气满满"
+        plantName = try c.decodeIfPresent(String.self, forKey: .plantName) ?? "向日葵"
+        plantDays = try c.decodeIfPresent(Int.self, forKey: .plantDays) ?? 5
+        plantProgress = try c.decodeIfPresent(Double.self, forKey: .plantProgress) ?? 0.6
+        plantStatus = try c.decodeIfPresent(String.self, forKey: .plantStatus) ?? "快来岛上种花吧！"
+        albumTitle = try c.decodeIfPresent(String.self, forKey: .albumTitle) ?? "相簿"
+        albumSubtitle = try c.decodeIfPresent(String.self, forKey: .albumSubtitle) ?? "我的收藏"
+        albumSymbol = try c.decodeIfPresent(String.self, forKey: .albumSymbol) ?? "photo.fill"
+        signatureText = try c.decodeIfPresent(String.self, forKey: .signatureText) ?? "公主请加油"
+        signatureSubtext = try c.decodeIfPresent(String.self, forKey: .signatureSubtext) ?? "日有熹微"
     }
 
     func encode(to encoder: Encoder) throws {
@@ -135,6 +253,25 @@ struct IslandTemplateConfig: Codable, Equatable {
         try c.encode(rideETA, forKey: .rideETA)
         try c.encode(rideProgress, forKey: .rideProgress)
         try c.encode(shortcuts, forKey: .shortcuts)
+        try c.encode(timerTargetDate, forKey: .timerTargetDate)
+        try c.encode(timerNote, forKey: .timerNote)
+        try c.encode(calendarNote, forKey: .calendarNote)
+        try c.encode(weatherCity, forKey: .weatherCity)
+        try c.encode(weatherSymbol, forKey: .weatherSymbol)
+        try c.encode(weatherTemp, forKey: .weatherTemp)
+        try c.encode(weatherRange, forKey: .weatherRange)
+        try c.encode(petEmoji, forKey: .petEmoji)
+        try c.encode(petName, forKey: .petName)
+        try c.encode(petStatus, forKey: .petStatus)
+        try c.encode(plantName, forKey: .plantName)
+        try c.encode(plantDays, forKey: .plantDays)
+        try c.encode(plantProgress, forKey: .plantProgress)
+        try c.encode(plantStatus, forKey: .plantStatus)
+        try c.encode(albumTitle, forKey: .albumTitle)
+        try c.encode(albumSubtitle, forKey: .albumSubtitle)
+        try c.encode(albumSymbol, forKey: .albumSymbol)
+        try c.encode(signatureText, forKey: .signatureText)
+        try c.encode(signatureSubtext, forKey: .signatureSubtext)
     }
 
     /// 预置应用快捷跳转列表（URL Scheme 打开对应 App；符号来自系统 SF Symbols）
@@ -197,6 +334,36 @@ func templateLeadingView(_ t: IslandTemplateConfig) -> some View {
         Image(systemName: "app.badge")
             .font(.system(size: 18))
             .foregroundStyle(Color(hex: t.characterColorHex))
+    case .timer:
+        Text(t.timerNote.isEmpty ? "倒计时" : t.timerNote)
+            .font(.system(size: 13, weight: .bold, design: .rounded))
+    case .calendar:
+        VStack(alignment: .leading, spacing: 0) {
+            Text(monthName)
+                .font(.system(size: 11, weight: .semibold))
+                .foregroundStyle(.secondary)
+            Text(dayNumber)
+                .font(.system(size: 26, weight: .heavy, design: .rounded))
+                .monospacedDigit()
+        }
+    case .weather:
+        Image(systemName: t.weatherSymbol.isEmpty ? "cloud.sun.fill" : t.weatherSymbol)
+            .font(.system(size: 30))
+            .foregroundStyle(Color(hex: t.characterColorHex))
+    case .pet:
+        Text(t.petEmoji.isEmpty ? "🐱" : t.petEmoji)
+            .font(.system(size: 34))
+    case .plant:
+        Text("🌱")
+            .font(.system(size: 32))
+    case .album:
+        Image(systemName: t.albumSymbol.isEmpty ? "photo.fill" : t.albumSymbol)
+            .font(.system(size: 32))
+            .foregroundStyle(Color(hex: t.characterColorHex))
+    case .signature:
+        Image(systemName: "text.quote")
+            .font(.system(size: 22))
+            .foregroundStyle(Color(hex: t.characterColorHex))
     }
 }
 
@@ -238,6 +405,49 @@ func templateTrailingView(_ t: IslandTemplateConfig) -> some View {
     case .appShortcut:
         Text("\(t.shortcuts.count) 个应用")
             .font(.system(size: 11, weight: .semibold))
+            .foregroundStyle(.secondary)
+    case .timer:
+        Text("⏳")
+            .font(.system(size: 16))
+    case .calendar:
+        Text(t.calendarNote)
+            .font(.system(size: 11, weight: .medium))
+            .foregroundStyle(.secondary)
+    case .weather:
+        VStack(alignment: .trailing, spacing: 2) {
+            Text(t.weatherCity)
+                .font(.system(size: 13, weight: .bold, design: .rounded))
+            Text(t.weatherTemp)
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(.secondary)
+        }
+    case .pet:
+        VStack(alignment: .trailing, spacing: 2) {
+            Text(t.petName)
+                .font(.system(size: 13, weight: .bold, design: .rounded))
+            Text(t.petStatus)
+                .font(.system(size: 9, weight: .medium))
+                .foregroundStyle(.secondary)
+        }
+    case .plant:
+        VStack(alignment: .trailing, spacing: 2) {
+            Text(t.plantName)
+                .font(.system(size: 13, weight: .bold, design: .rounded))
+            Text("第 \(t.plantDays) 天")
+                .font(.system(size: 9, weight: .medium))
+                .foregroundStyle(.secondary)
+        }
+    case .album:
+        VStack(alignment: .trailing, spacing: 2) {
+            Text(t.albumTitle)
+                .font(.system(size: 14, weight: .bold, design: .rounded))
+            Text(t.albumSubtitle)
+                .font(.system(size: 10, weight: .medium))
+                .foregroundStyle(.secondary)
+        }
+    case .signature:
+        Text(t.signatureSubtext)
+            .font(.system(size: 11, weight: .medium))
             .foregroundStyle(.secondary)
     }
 }
@@ -316,5 +526,117 @@ func templateBottomView(_ t: IslandTemplateConfig) -> some View {
             Spacer()
         }
         .frame(maxWidth: .infinity)
+    case .timer:
+        HStack(spacing: 8) {
+            Text("⏳")
+                .font(.system(size: 12))
+            Text(timerInterval: Date.now...t.timerTargetDate, countsDown: true)
+                .font(.system(size: 20, weight: .heavy, design: .rounded))
+                .monospacedDigit()
+            Spacer()
+            Text(t.timerNote)
+                .font(.system(size: 10, weight: .medium))
+                .foregroundStyle(.secondary)
+        }
+    case .calendar:
+        CalendarStripView()
+    case .weather:
+        HStack {
+            Text(t.weatherRange)
+                .font(.system(size: 10, weight: .medium))
+                .foregroundStyle(.secondary)
+            Spacer()
+            Text("实时天气")
+                .font(.system(size: 9, weight: .medium))
+                .foregroundStyle(.tertiary)
+        }
+    case .pet:
+        HStack {
+            Text("🐾 陪伴中")
+                .font(.system(size: 10, weight: .medium))
+                .foregroundStyle(.secondary)
+            Spacer()
+            Text(t.petStatus)
+                .font(.system(size: 10, weight: .semibold))
+                .foregroundStyle(Color(hex: t.characterColorHex))
+        }
+    case .plant:
+        VStack(spacing: 6) {
+            ProgressView(value: t.plantProgress)
+                .progressViewStyle(.linear)
+                .tint(Color(hex: t.characterColorHex))
+            HStack {
+                Text(t.plantStatus)
+                    .font(.system(size: 10, weight: .medium))
+                    .foregroundStyle(.secondary)
+                Spacer()
+                Text("\(Int(t.plantProgress * 100))%")
+                    .font(.system(size: 10, weight: .semibold, design: .rounded))
+                    .monospacedDigit()
+            }
+        }
+    case .album:
+        HStack {
+            Image(systemName: "photo.on.rectangle.angled")
+                .font(.system(size: 12))
+                .foregroundStyle(.secondary)
+            Text(t.albumSubtitle)
+                .font(.system(size: 10, weight: .medium))
+                .foregroundStyle(.secondary)
+            Spacer()
+        }
+    case .signature:
+        Text(t.signatureText.isEmpty ? "签名" : t.signatureText)
+            .font(.system(size: 15, weight: .bold, design: .rounded))
+            .foregroundStyle(Color(hex: t.characterColorHex))
+            .frame(maxWidth: .infinity, alignment: .leading)
     }
+}
+
+// MARK: - 日历岛：星期条（自动高亮今天）
+
+private struct CalendarStripView: View {
+    private var days: [String] { ["一", "二", "三", "四", "五", "六", "日"] }
+
+    var body: some View {
+        let cal = Calendar.current
+        let today = cal.component(.day, from: Date())
+        let weekday = ((cal.component(.weekday, from: Date()) + 5) % 7) + 1  // 1 = 周一
+        let monday = today - weekday + 1
+
+        HStack(spacing: 6) {
+            ForEach(1...7, id: \.self) { d in
+                let dayNum = monday + d - 1
+                VStack(spacing: 3) {
+                    Text(days[d - 1])
+                        .font(.system(size: 8))
+                        .foregroundStyle(.secondary)
+                    Text("\(dayNum)")
+                        .font(.system(size: 10, weight: d == weekday ? .bold : .regular))
+                        .monospacedDigit()
+                        .foregroundStyle(d == weekday ? Color.black : .white)
+                        .frame(width: 22, height: 22)
+                        .background(d == weekday ? Color.orange : Color.clear)
+                        .clipShape(Circle())
+                }
+            }
+        }
+        .frame(maxWidth: .infinity)
+    }
+}
+
+// MARK: - 模板辅助计算
+
+private var monthName: String {
+    let f = DateFormatter()
+    f.locale = Locale(identifier: "zh_CN")
+    f.dateFormat = "M月"
+    return f.string(from: Date())
+}
+
+private var dayNumber: String {
+    let f = DateFormatter()
+    f.locale = Locale(identifier: "zh_CN")
+    f.dateFormat = "dd"
+    return f.string(from: Date())
 }

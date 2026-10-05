@@ -7,7 +7,7 @@ struct ContentView: View {
         GlassEffectContainer {
             TabView {
                 HomeView()
-                    .tabItem { Label("首页", systemImage: "sparkles") }
+                    .tabItem { Label("動態島", systemImage: "sparkles") }
                 NavigationStack {
                     EditorView()
                 }
