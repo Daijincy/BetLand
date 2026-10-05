@@ -175,7 +175,7 @@ func templateLeadingView(_ t: IslandTemplateConfig) -> some View {
         Image(systemName: t.characterSymbol.isEmpty ? "figure.walk" : t.characterSymbol)
             .font(.system(size: 26))
             .foregroundStyle(Color(hex: t.characterColorHex))
-            .symbolEffect(.breathe, options: .repeat(.continuous))
+            .symbolEffect(.breathe)
     case .delivery:
         HStack(spacing: 6) {
             Image(systemName: "takeoutbag.and.cup.and.straw.fill")
@@ -259,7 +259,7 @@ func templateBottomView(_ t: IslandTemplateConfig) -> some View {
             Image(systemName: t.characterSymbol.isEmpty ? "figure.walk" : t.characterSymbol)
                 .font(.system(size: 18))
                 .foregroundStyle(Color(hex: t.characterColorHex))
-                .symbolEffect(.breathe, options: .repeat(.continuous))
+                .symbolEffect(.breathe)
             Text("\(t.characterName) · \(t.characterSubtitle)")
                 .font(.system(size: 11, weight: .medium))
                 .foregroundStyle(.secondary)
