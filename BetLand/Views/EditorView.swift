@@ -9,6 +9,11 @@ struct EditorView: View {
     @Query(sort: \LayoutPreset.createdAt) private var presets: [LayoutPreset]
     @State private var selectedItemID: UUID?
 
+    // 应用跳转自定义添加
+    @State private var newShortcutName = ""
+    @State private var newShortcutSymbol = "app.fill"
+    @State private var newShortcutURL = "weixin://"
+
     private let palette: [String] = [
         "#FFFFFF", "#0A84FF", "#30D158", "#FF9F0A",
         "#FF453A", "#FFD60A", "#BF5AF2", "#64D2FF"
@@ -113,6 +118,42 @@ struct EditorView: View {
                                 range: 0...40,
                                 format: "%.0f pt"
                             )
+                        }
+                    }
+
+                    // 展开模板
+                    GlassCard {
+                        VStack(alignment: .leading, spacing: 14) {
+                            Label("展开模板", systemImage: "square.stack.3d.up")
+                                .font(.headline)
+
+                            ScrollView(.horizontal, showsIndicators: false) {
+                                HStack(spacing: 8) {
+                                    ForEach(IslandTemplate.allCases) { t in
+                                        Button {
+                                            config.template.kind = t
+                                        } label: {
+                                            HStack(spacing: 4) {
+                                                Image(systemName: t.systemImage)
+                                                    .font(.caption)
+                                                Text(t.rawValue)
+                                                    .font(.footnote.weight(.semibold))
+                                            }
+                                            .padding(.horizontal, 10)
+                                            .padding(.vertical, 6)
+                                            .background(
+                                                config.template.kind == t
+                                                    ? config.accentColor().opacity(0.35)
+                                                    : Color.white.opacity(0.1)
+                                            )
+                                            .clipShape(Capsule())
+                                        }
+                                        .buttonStyle(.plain)
+                                    }
+                                }
+                            }
+
+                            templateParams
                         }
                     }
 
@@ -265,6 +306,178 @@ struct EditorView: View {
         item.y = 0
         config.items.append(item)
         selectedItemID = item.id
+    }
+
+    // MARK: - 展开模板参数
+
+    @ViewBuilder
+    private var templateParams: some View {
+        switch config.template.kind {
+        case .none:
+            Text("选择上方模板，配置展开面板内容。默认模板保持当前渲染。")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+
+        case .leftImage:
+            TextField("左侧图标（SF Symbol）", text: Bindable(config).template.leftSymbol)
+                .textFieldStyle(.roundedBorder)
+            TextField("右侧标题", text: Bindable(config).template.rightTitle)
+                .textFieldStyle(.roundedBorder)
+            TextField("右侧副标题", text: Bindable(config).template.rightSubtitle)
+                .textFieldStyle(.roundedBorder)
+            tintPalette(hex: Bindable(config).template.characterColorHex)
+
+        case .character:
+            TextField("人偶符号（SF Symbol）", text: Bindable(config).template.characterSymbol)
+                .textFieldStyle(.roundedBorder)
+            TextField("人偶名字", text: Bindable(config).template.characterName)
+                .textFieldStyle(.roundedBorder)
+            TextField("副标题", text: Bindable(config).template.characterSubtitle)
+                .textFieldStyle(.roundedBorder)
+            tintPalette(hex: Bindable(config).template.characterColorHex)
+
+        case .delivery:
+            TextField("商家名称", text: Bindable(config).template.merchantName)
+                .textFieldStyle(.roundedBorder)
+            TextField("配送状态", text: Bindable(config).template.deliveryStatus)
+                .textFieldStyle(.roundedBorder)
+            TextField("预计送达", text: Bindable(config).template.deliveryETA)
+                .textFieldStyle(.roundedBorder)
+            TextField("骑手", text: Bindable(config).template.riderName)
+                .textFieldStyle(.roundedBorder)
+            TextField("收货地址", text: Bindable(config).template.deliveryAddress)
+                .textFieldStyle(.roundedBorder)
+            GlassSlider(
+                title: "配送进度",
+                value: Bindable(config).template.deliveryProgress,
+                range: 0...1,
+                format: "%.0f%%"
+            )
+            tintPalette(hex: Bindable(config).template.characterColorHex)
+
+        case .ride:
+            TextField("车牌号", text: Bindable(config).template.ridePlate)
+                .textFieldStyle(.roundedBorder)
+            TextField("司机", text: Bindable(config).template.rideDriver)
+                .textFieldStyle(.roundedBorder)
+            TextField("车型", text: Bindable(config).template.rideCar)
+                .textFieldStyle(.roundedBorder)
+            TextField("预计到达", text: Bindable(config).template.rideETA)
+                .textFieldStyle(.roundedBorder)
+            GlassSlider(
+                title: "行程进度",
+                value: Bindable(config).template.rideProgress,
+                range: 0...1,
+                format: "%.0f%%"
+            )
+            tintPalette(hex: Bindable(config).template.characterColorHex)
+
+        case .appShortcut:
+            VStack(alignment: .leading, spacing: 10) {
+                Text("岛上最多显示 6 个应用，点击直达（需目标 App 支持 URL Scheme）")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+
+                ForEach(config.template.shortcuts) { s in
+                    HStack(spacing: 10) {
+                        Image(systemName: s.symbol)
+                            .font(.title3)
+                            .foregroundStyle(Color(hex: s.colorHex))
+                            .frame(width: 32)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(s.name).font(.footnote.weight(.medium))
+                            Text(s.url).font(.caption2).foregroundStyle(.secondary)
+                        }
+                        Spacer()
+                        Button {
+                            config.template.shortcuts.removeAll { $0.id == s.id }
+                        } label: {
+                            Image(systemName: "minus.circle.fill")
+                                .foregroundStyle(.red)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+
+                Divider()
+
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("添加应用（名称 / SF Symbol / URL Scheme / 颜色）")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    HStack(spacing: 8) {
+                        TextField("名称", text: $newShortcutName)
+                            .textFieldStyle(.roundedBorder)
+                        TextField("符号", text: $newShortcutSymbol)
+                            .textFieldStyle(.roundedBorder)
+                    }
+                    TextField("URL Scheme", text: $newShortcutURL)
+                        .textFieldStyle(.roundedBorder)
+                    HStack {
+                        Button {
+                            addShortcut()
+                        } label: {
+                            Label("添加", systemImage: "plus.circle.fill")
+                                .font(.footnote.weight(.semibold))
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 6)
+                                .background(config.accentColor().opacity(0.35))
+                                .clipShape(Capsule())
+                        }
+                        .buttonStyle(.plain)
+                        Spacer()
+                        Button {
+                            config.template.shortcuts = IslandTemplateConfig.defaultShortcuts()
+                        } label: {
+                            Text("恢复预置")
+                                .font(.footnote)
+                                .foregroundStyle(.secondary)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+            }
+        }
+    }
+
+    private func tintPalette(hex: Binding<String>) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("强调色")
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+            HStack(spacing: 10) {
+                ForEach(palette, id: \.self) { h in
+                    Button {
+                        hex.wrappedValue = h
+                    } label: {
+                        Circle()
+                            .fill(Color(hex: h))
+                            .frame(width: 26, height: 26)
+                            .overlay(
+                                Circle().stroke(hex.wrappedValue == h ? Color.white : Color.clear, lineWidth: 2)
+                            )
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+        }
+    }
+
+    private func addShortcut() {
+        let name = newShortcutName.trimmingCharacters(in: .whitespaces)
+        guard !name.isEmpty, !newShortcutURL.isEmpty else { return }
+        let symbol = newShortcutSymbol.trimmingCharacters(in: .whitespaces)
+        config.template.shortcuts.append(
+            AppShortcut(
+                name: name,
+                symbol: symbol.isEmpty ? "app.fill" : symbol,
+                url: newShortcutURL,
+                colorHex: config.accentHex
+            )
+        )
+        newShortcutName = ""
+        newShortcutSymbol = "app.fill"
+        newShortcutURL = ""
     }
 
     // MARK: - 属性面板

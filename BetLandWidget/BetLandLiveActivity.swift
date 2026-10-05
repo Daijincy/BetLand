@@ -11,15 +11,15 @@ struct BetLandLiveActivity: Widget {
             LockScreenLiveActivityView(context: context)
         } dynamicIsland: { context in
             DynamicIsland {
-                // 展开态：四大系统区域自由摆放
+                // 展开态：有模板渲染模板视图，否则默认视图
                 DynamicIslandExpandedRegion(.leading) {
-                    leadingExpanded(context)
+                    leadingRegion(context)
                 }
                 DynamicIslandExpandedRegion(.trailing) {
-                    trailingExpanded(context)
+                    trailingRegion(context)
                 }
                 DynamicIslandExpandedRegion(.bottom) {
-                    bottomExpanded(context)
+                    bottomRegion(context)
                 }
             } compactLeading: {
                 compactLeading(context)
@@ -31,7 +31,43 @@ struct BetLandLiveActivity: Widget {
         }
     }
 
-    // MARK: - 展开态
+    // MARK: - 模板解析（带默认渲染回退）
+
+    private func template(from context: ActivityViewContext<BetLandAttributes>) -> IslandTemplateConfig? {
+        guard let t = IslandTemplateConfig.decode(context.state.templateJSON), t.kind != .none else {
+            return nil
+        }
+        return t
+    }
+
+    @ViewBuilder
+    private func leadingRegion(_ context: ActivityViewContext<BetLandAttributes>) -> some View {
+        if let t = template(from: context) {
+            templateLeadingView(t)
+        } else {
+            leadingExpanded(context)
+        }
+    }
+
+    @ViewBuilder
+    private func trailingRegion(_ context: ActivityViewContext<BetLandAttributes>) -> some View {
+        if let t = template(from: context) {
+            templateTrailingView(t)
+        } else {
+            trailingExpanded(context)
+        }
+    }
+
+    @ViewBuilder
+    private func bottomRegion(_ context: ActivityViewContext<BetLandAttributes>) -> some View {
+        if let t = template(from: context) {
+            templateBottomView(t)
+        } else {
+            bottomExpanded(context)
+        }
+    }
+
+    // MARK: - 展开态（默认）
 
     private func leadingExpanded(_ context: ActivityViewContext<BetLandAttributes>) -> some View {
         VStack(alignment: .leading, spacing: 4) {

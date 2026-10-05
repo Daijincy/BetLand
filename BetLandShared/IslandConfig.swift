@@ -36,6 +36,9 @@ final class IslandConfig {
     // 编辑器画布上的组件
     var items: [IslandItem] = IslandItem.sample()
 
+    // 展开面板模板（iScreen 式预设）
+    var template: IslandTemplateConfig = IslandTemplateConfig()
+
     // 快捷方法：16 进制 -> Color
     func accentColor() -> Color {
         Color(hex: accentHex)
