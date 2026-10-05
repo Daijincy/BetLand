@@ -9,7 +9,6 @@ struct BetLandAttributes: ActivityAttributes {
         var subtitle: String = "12:30"
         var progress: Double = 0.0
         var accentHex: String = "#0A84FF"
-        var layoutJSON: String = ""   // 序列化的 IslandLayout；空则回退默认渲染
     }
 
     var name: String = "BetLand"
