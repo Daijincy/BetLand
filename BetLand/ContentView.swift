@@ -8,8 +8,10 @@ struct ContentView: View {
             TabView {
                 HomeView()
                     .tabItem { Label("首页", systemImage: "sparkles") }
-                EditorView()
-                    .tabItem { Label("编辑器", systemImage: "slider.horizontal.3") }
+                NavigationStack {
+                    EditorView()
+                }
+                .tabItem { Label("编辑器", systemImage: "slider.horizontal.3") }
                 SettingsView()
                     .tabItem { Label("设置", systemImage: "gearshape") }
             }

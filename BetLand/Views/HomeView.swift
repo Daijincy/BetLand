@@ -148,7 +148,8 @@ struct HomeView: View {
         do {
             let activity = try LiveActivityManager.start(config: config)
             activeActivity = activity
-            statusText = "已启动「\(config.presetName)」· 灵动岛最长 8h / 锁屏 12h"
+            LiveActivitySync.shared.register(activity)
+            statusText = "已启动「\(config.presetName)」· 改动即时同步"
         } catch {
             statusText = "启动失败：\(error.localizedDescription)"
         }
@@ -158,6 +159,7 @@ struct HomeView: View {
         Task {
             await LiveActivityManager.endAll()
             activeActivity = nil
+            LiveActivitySync.shared.register(nil)
             statusText = "已结束全部实时活动"
         }
     }
