@@ -66,6 +66,9 @@ struct TemplateDetailView: View {
                                 .textFieldStyle(.roundedBorder)
                             TextField("胶囊图标（SF Symbol）", text: Bindable(config).capsuleIcon)
                                 .textFieldStyle(.roundedBorder)
+                            Text("提示：右侧视口物理较小（约 3-4 字），已做自动缩小；长文字建议放左侧或展开面板")
+                                .font(.caption2)
+                                .foregroundStyle(.secondary)
                             GlassSlider(
                                 title: "视觉宽度",
                                 value: Bindable(config).capsuleVisualWidth,
@@ -230,11 +233,13 @@ struct CapsulePreview: View {
             Text(config.capsuleLeadingText)
                 .font(.caption.weight(.semibold))
                 .lineLimit(1)
+                .minimumScaleFactor(0.5)
             Spacer(minLength: 8)
             Text(config.capsuleTrailingText)
-                .font(.caption.weight(.bold))
+                .font(.caption2.weight(.bold))
                 .monospacedDigit()
                 .lineLimit(1)
+                .minimumScaleFactor(0.35)
         }
         .padding(.horizontal, 12)
         .frame(width: 230 * config.capsuleVisualWidth, height: 36)

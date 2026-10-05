@@ -121,15 +121,17 @@ struct BetLandLiveActivity: Widget {
             Text(context.state.title)
                 .font(.caption.weight(.semibold))
                 .lineLimit(1)
+                .minimumScaleFactor(0.5)
         }
         .foregroundStyle(.white)
     }
 
     private func compactTrailing(_ context: ActivityViewContext<BetLandAttributes>) -> some View {
         Text(context.state.subtitle)
-            .font(.caption.weight(.bold))
+            .font(.caption2.weight(.bold))
             .monospacedDigit()
             .lineLimit(1)
+            .minimumScaleFactor(0.35)
             .foregroundStyle(.white)
     }
 
